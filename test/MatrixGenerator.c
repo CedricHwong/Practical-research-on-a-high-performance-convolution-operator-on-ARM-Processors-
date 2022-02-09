@@ -51,21 +51,21 @@ static void disposeImgs(uint **pImgs) {
 int main() {
     clock_t tic = clock();
 
-    uint amount = 1000000;
+    uint amount = 130000000;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
-    for (uint a = 0u; a < amount; ++a) {
-        printf("================================\n");
-        for (uint v = 0u; v < 32u; ++v) {
-            // uint num = *(pImgs + a * 32u + v);
-            for (uint u = 0u; u < 32u; ++u) {
-                // printf("%u", (num & (1u << u)) >> u);
-                printf("%u", IMG32PIXEL(pImgs, a, u, v));
-            }
-            printf("\n");
-        }
-        printf("================================\n");
-    }
+    // for (uint a = 0u; a < amount; ++a) {
+    //     printf("================================\n");
+    //     for (uint v = 0u; v < 32u; ++v) {
+    //         // uint num = *(pImgs + a * 32u + v);
+    //         for (uint u = 0u; u < 32u; ++u) {
+    //             // printf("%u", (num & (1u << u)) >> u);
+    //             printf("%u", IMG32PIXEL(pImgs, a, u, v));
+    //         }
+    //         printf("\n");
+    //     }
+    //     printf("================================\n");
+    // }
     disposeImgs(&pImgs);
     clock_t toc = clock();
     printf("Elapsed: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
