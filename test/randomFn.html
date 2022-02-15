@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { image-rendering: pixelated; }
+        fieldset { margin-top: 15px; padding-left: 15px; }
+        fieldset select { margin-top: 0.5em; }
+        canvas { box-shadow: 0 0 10px; }
+        input[type=number] { -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body>
+    <div>
+        <label>Unsigned 32-bit Int Seed: <input id="seed" value="23" type="text" min="0" step="1"
+            oninput="this.value = this.value.replace(/[^\d]/g, '')" /></label>
+        <br/>
+        <label>Arrangement: <select id="arrangement">
+            <option value="r">row by row</option>
+            <option value="rb">row by row (block)</option>
+        </select></label>
+        <br/>
+        <label>Output Size: <select id="size">
+            <option value="32">32 x 32</option>
+            <option value="64">64 x 64</option>
+            <option value="128">128 x 128</option>
+            <option value="256" selected>256 x 256</option>
+            <option value="512">512 x 512</option>
+            <option value="1024">1024 x 1024</option>
+        </select></label>
+        <input id="refreshBtn" type="button" value="refresh" />
+    </div>
+    <fieldset id="group1">
+        <legend id="g1title">PRNG 1</legend>
+        <label>Algorithm: <select id="g1select"></select></label>
+        <p>Calculation Spend Time: <span id="g1time"></span><br/>
+            (average: <span id="g1average"></span> / generation)</p>
+        <canvas id="g1canvas"></canvas>
+    </fieldset>
+    <fieldset id="group2">
+        <legend id="g2title">PRNG 2</legend>
+        <label>Algorithm: <select id="g2select"></select></label>
+        <p>Calculation Spend Time: <span id="g2time"></span><br/>
+            (average: <span id="g2average"></span> / generation)</p>
+        <canvas id="g2canvas"></canvas>
+    </fieldset>
+    <script>
+        let tmpUint32 = new Uint32Array(1);
+        const rands = {
+            "LCG(1664525, 1013904223, 2^32 + 1)":  seed => {
+                tmpUint32[0] = (1664525 * seed + 1013904223) % (2 ** 32 + 1);
+                return tmpUint32[0];
+            },
+            "LCG(1664525, 1013904223, 2^32 - 1)":  seed => {
+                tmpUint32[0] = (1664525 * seed + 1013904223) % (2 ** 32 - 1);
+                return tmpUint32[0];
+            },
+            "LCG(1664525, 1013904223, 2^32)":  seed => {
+                // tmpUint32[0] = (1664525 * seed + 1013904223) % (2 ** 32);
+                tmpUint32[0] = seed;
+                tmpUint32[0] *= 1664525;
+                tmpUint32[0] += 1013904223;
+                return tmpUint32[0];
+            },
+            "LCG(214013, 2531011)": seed => {
+                tmpUint32[0] = seed;
+                tmpUint32[0] *= 214013;
+                tmpUint32[0] += 2531011;
+                return tmpUint32[0];
+            },
+            "xorshift(13, 17, 5)": seed => {
+                tmpUint32[0] = seed;
+                tmpUint32[0] ^= tmpUint32[0] << 13;
+                tmpUint32[0] ^= tmpUint32[0] >>> 17;
+                tmpUint32[0] ^= tmpUint32[0] << 5;
+                return tmpUint32[0];
+            },
+        };
+        const [g1, g2] = [1, 2].map(i => {
+            let group = document.getElementById("group" + i);
+            let eles = Array.from(group.querySelectorAll("[id]"));
+            return {
+                self: group,
+                ...eles.reduce((ans, ele) => {
+                    ans[ele.id.replace("g" + i, "")] = ele;
+                    return ans;
+                }, {}),
+            };
+        });
+
+        let seed, size, arrangementType;
+        seed = ~~document.getElementById("seed").value;
+        size = 1 * document.getElementById("size").value;
+        arrangementType = document.getElementById("arrangement").value;
+        document.getElementById("refreshBtn").addEventListener("click", async function(e) {
+            seed = ~~document.getElementById("seed").value;
+            size = 1 * document.getElementById("size").value;
+            arrangementType = document.getElementById("arrangement").value;
+            await new Promise(s => setTimeout(s, 0));
+            refresh(g1);
+            await new Promise(s => setTimeout(s, 0));
+            refresh(g2);
+        });
+
+        g1.select.innerHTML = g2.select.innerHTML =
+            Object.keys(rands).map(k => `<option value="${k}">${k}</option>`).join("");
+        g1.select.value = "xorshift(13, 17, 5)";
+        g1.select.onchange = e => refresh(g1);
+        g2.select.onchange = e => refresh(g2);
+
+        const GET_BIT = (num, w, b) => ((num) >> ((w) - 1 - (b)) & 1);
+        const GET_BIT_32 = (num, b) => GET_BIT(num, 32, b);
+        function refresh(group) {
+            const RAND_FN = rands[group.select.value];
+            let totalTime = 0, totalCall = 0;
+            function RAND(seed) {
+                let t;
+                // let st = performance.now();
+                t = RAND_FN(seed);
+                // totalTime += performance.now() - st;
+                // ++totalCall;
+                return t;
+            }
+
+            const { canvas } = group;
+            canvas.width = canvas.height =
+            canvas.style.width = canvas.style.height = size;
+            const ctx = canvas.getContext("2d");
+            let result = new Uint32Array(size * size / 32);
+            // The time cost of calling the performance.now function frequently in JavaScript is high,
+            // so calculating the total time spent here is more accurate than in RAND.
+            let st = performance.now();
+            result[0] = RAND(RAND(seed));
+            for (let i = 1; i < size * size; ++i)
+                result[i] = RAND(result[i - 1]);
+            totalTime = performance.now() - st;
+            totalCall = size * size + 1;
+
+            const IMG32PIXEL = (index, u, v) =>
+                GET_BIT_32(result[index * 32 + v], u);
+            let imgData = ctx.getImageData(0, 0, size, size);
+            let data = imgData.data;
+            const fillColor = (u, v, r, g = r, b = r, a = 255) => {
+                data[(v * size + u) * 4 + 0] = r;
+                data[(v * size + u) * 4 + 1] = g;
+                data[(v * size + u) * 4 + 2] = b;
+                data[(v * size + u) * 4 + 3] = a;
+            };
+            const fillBlack = (u, v) => fillColor(u, v, 0);
+            const fillWhite = (u, v) => fillColor(u, v, 255);
+            const fillBlue = (u, v) => fillColor(u, v, 0, 0, 255);
+            const fillRed = (u, v) => fillColor(u, v, 255, 0, 0);
+            switch (arrangementType) {
+            case "rb": {
+                for (let u = 0; u < size; ++u) {
+                    for (let v = 0; v < size; ++v) {
+                        // >> 5 means floor division 32 (// operator in python)
+                        let blockX = u >> 5, blockY = v >> 5;
+                        let bit = IMG32PIXEL(blockX * (size >> 5) + blockY, u % 32, v % 32);
+                        if (bit) {
+                            (blockX % 2
+                                ? blockY % 2? fillBlue: fillRed
+                                : blockY % 2? fillRed: fillBlue
+                            )(u, v);
+                        }
+                        else fillWhite(u, v);
+                    }
+                }
+                break; }
+            case "r": {
+                for (let v = 0; v < size; ++v) {
+                    for (let u = 0; u < size; ++u) {
+                        let bit = GET_BIT_32(result[v * (size >> 5) + (u >> 5)], u % 32);
+                        if (bit) fillBlack(u, v);
+                        else fillWhite(u, v);
+                    }
+                }
+                break; }
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            group.time.innerHTML = totalTime + "ms";
+            group.average.innerHTML = (totalTime / totalCall) + "ms";
+        }
+
+        refresh(g1);
+        refresh(g2);
+    </script>
+</body>
+</html>

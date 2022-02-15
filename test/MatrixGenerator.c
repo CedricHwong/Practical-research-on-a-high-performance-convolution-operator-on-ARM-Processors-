@@ -1,4 +1,6 @@
 
+#define OUTPUT_GEN_RAND_IMG_TIME
+
 #include <stdio.h> // printf, fprintf
 #include <stdlib.h> // malloc, free
 #include <stdint.h> // >= c99; uint32_t
@@ -6,9 +8,23 @@
 
 #define uint uint32_t
 
-static uint LCG(uint seed) {
-    return 214013u * seed + 2531011u;
+// // Source: Numerical Recipes - LCG(1664525, 1013904223, 2^32)
+// static inline uint LCG(uint seed) { return 1664525u * seed + 1013904223u; }
+// // Source: Based on the theory mentioned in TAOCP, change m to make the lower bits random. But there is no strict choice of a and c.
+// static inline uint LCG(uint seed) { return (uint)((1664525ul * (uint64_t) seed + 1013904223ul) % 0x100000001ul); }
+// static inline uint LCG(uint seed) { return (uint)((1664525ul * (uint64_t) seed + 1013904223ul) % 0xFFFFFFFFul); }
+// // Source: Microsoft Visual/Quick C/C++ - LCG(214013, 2531011, 2^32)
+// static inline uint LCG(uint seed) { return 214013u * seed + 2531011u; }
+
+static inline uint xorshift(uint seed) {
+    seed ^= seed << 13;
+    seed ^= seed >> 17;
+    seed ^= seed << 5;
+    return seed;
 }
+
+// #define RAND LCG
+#define RAND xorshift
 
 #define GET_BIT(num, w, b) ((num) >> ((w) - 1u - (b)) & 1u)
 #define GET_BIT_32(num, b) GET_BIT(num, 32u, b)
@@ -29,15 +45,34 @@ static uint LCG(uint seed) {
 static uint* genRand32x32Imgs(uint seed, uint amount) {
     // sizeof(uint) = 4
     uint *ans = (uint*)malloc(amount * 32u * sizeof(uint));
-    if (ans) for (uint i = 0u; i < amount; ++i) {
+    if (ans == NULL) {
+        // If you use keil, remember to open stderr redirection
+        fprintf(stderr, "Memory allocation failed!");
+        return NULL;
+    }
+#ifdef OUTPUT_GEN_RAND_IMG_TIME
+    // If the amount of data used for testing is too large, frequent memory swaps will occur,
+    // resulting in a slowdown in execution speed.
+    // So output the size here for judgment.
+    printf("amount = %u (= %llu Bytes = %f KB = %f MB = %f GB)\n", amount,
+        amount * 32u * sizeof(uint),
+        (double)(amount * 32u * sizeof(uint)) / 1024.0,
+        (double)(amount * 32u * sizeof(uint)) / 1024.0 / 1024.0,
+        (double)(amount * 32u * sizeof(uint)) / 1024.0 / 1024.0 / 1024.0
+    );
+    clock_t tic = clock();
+#endif
+    seed = RAND(seed);
+    for (uint i = 0u; i < amount; ++i) {
         for (uint j = 0u; j < 32u; ++j) {
+            seed = RAND(seed);
             *(ans + i * 32u + j) = seed;
-            seed = LCG(seed);
         }
     }
-    else
-        // 使用keil的话，记得打开stderr的重定向
-        fprintf(stderr, "Memory allocation failed!");
+#ifdef OUTPUT_GEN_RAND_IMG_TIME
+    clock_t toc = clock();
+    printf("Elapsed: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
+#endif
     return ans;
 }
 
@@ -49,25 +84,22 @@ static void disposeImgs(uint **pImgs) {
 
 // test
 int main() {
-    clock_t tic = clock();
-
     uint amount = 130000000;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
     // for (uint a = 0u; a < amount; ++a) {
-    //     printf("================================\n");
+    //     printf("+================================+\n|");
     //     for (uint v = 0u; v < 32u; ++v) {
     //         // uint num = *(pImgs + a * 32u + v);
     //         for (uint u = 0u; u < 32u; ++u) {
     //             // printf("%u", (num & (1u << u)) >> u);
-    //             printf("%u", IMG32PIXEL(pImgs, a, u, v));
+    //             printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
     //         }
-    //         printf("\n");
+    //         if (v == 31u)printf("|\n");
+    //         else printf("|\n|");
     //     }
-    //     printf("================================\n");
+    //     printf("+================================+\n");
     // }
     disposeImgs(&pImgs);
-    clock_t toc = clock();
-    printf("Elapsed: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
     return 0;
 }
