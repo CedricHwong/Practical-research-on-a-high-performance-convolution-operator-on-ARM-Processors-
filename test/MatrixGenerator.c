@@ -57,6 +57,29 @@ static inline uint xorshift(uint seed) {
   0  0 -1  0  0
   0  0  0  0  0
 */
+int k_3[3][3] = {
+    {0, 1, 0},
+    {1, -4, 1},
+    {0, 1, 0}
+};
+int k_5[5][5] = {
+    {0, 0, 0, 0, 0},
+    {0, 0, -1, 0, 0},
+    {0, -1, 5, -1, 0},
+    {0, 0, -1, 0, 0},
+    {0, 0, 0, 0, 0}
+};
+
+int** createKernel(int size){
+    if (size == 3){
+        return k_3;
+    } else if (size == 5){
+        return k_5;
+    } else {
+        fprintf(stderr, "Wrong kernel size");
+        return NULL;
+    }
+}
 
 // 生成大小为32x32的 个数为amount的 随机二值图像
 static uint* genRand32x32Imgs(uint seed, uint amount) {
@@ -104,19 +127,40 @@ int main() {
     uint amount = 130000000;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
-    // for (uint a = 0u; a < amount; ++a) {
-    //     printf("+================================+\n|");
-    //     for (uint v = 0u; v < 32u; ++v) {
-    //         // uint num = *(pImgs + a * 32u + v);
-    //         for (uint u = 0u; u < 32u; ++u) {
-    //             // printf("%u", (num & (1u << u)) >> u);
-    //             printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
-    //         }
-    //         if (v == 31u)printf("|\n");
-    //         else printf("|\n|");
-    //     }
-    //     printf("+================================+\n");
-    // }
+
+    int size = 3;
+    int** k_ = createKernel(size);
+    
+    if (k_ == NULL) { return 0; }
+
+    // IMG32PIXEL(pImgs, a, u, v)
+    // pImgs[a][u, v]
+
+
+    
+    for (uint a = 0u; a < amount; ++a) {
+        // printf("+================================+\n|");
+        for (uint v = 0u; v < 32u - size + 1; ++v) {
+            // uint num = *(pImgs + a * 32u + v);
+            for (uint u = 0u; u < 32u - size + 1; ++u) {
+                // printf("%u", (num & (1u << u)) >> u);
+                // printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
+                
+                int count = 0;
+                // each node in kernel
+                for (int h = 0; h < size; h++) {
+                    for (int w = 0; w < size; w++) {
+                        // account the output value
+                        count += IMG32PIXEL(pImgs, a, u, v) * k_[h][w];
+                    }
+                }
+                // now, count is the output node of the kernel
+            }
+            // if (v == 31u)printf("|\n");
+            // else printf("|\n|");
+        }
+        // printf("+================================+\n");
+    }
     disposeImgs(&pImgs);
     return 0;
 }
