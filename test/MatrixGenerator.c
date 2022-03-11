@@ -124,7 +124,7 @@ static void disposeImgs(uint **pImgs) {
 
 // test
 int main() {
-    uint amount = 130000000;
+    uint amount = 1;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
 
@@ -132,14 +132,12 @@ int main() {
     int** k_ = createKernel(size);
     
     if (k_ == NULL) { return 0; }
-
+//	printf("%d", 32u - size + 1);
     // IMG32PIXEL(pImgs, a, u, v)
     // pImgs[a][u, v]
-
-
     
     for (uint a = 0u; a < amount; ++a) {
-        // printf("+================================+\n|");
+//         printf("+================================+\n|");
         for (uint v = 0u; v < 32u - size + 1; ++v) {
             // uint num = *(pImgs + a * 32u + v);
             for (uint u = 0u; u < 32u - size + 1; ++u) {
@@ -151,16 +149,21 @@ int main() {
                 for (int h = 0; h < size; h++) {
                     for (int w = 0; w < size; w++) {
                         // account the output value
+                        printf("%d",k_[h][w]);
                         count += IMG32PIXEL(pImgs, a, u, v) * k_[h][w];
+                        
                     }
                 }
                 // now, count is the output node of the kernel
+                
+                printf("%d\n",count);
             }
             // if (v == 31u)printf("|\n");
             // else printf("|\n|");
         }
         // printf("+================================+\n");
     }
+    
     disposeImgs(&pImgs);
     return 0;
 }
