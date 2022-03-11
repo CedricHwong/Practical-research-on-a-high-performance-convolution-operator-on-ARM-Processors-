@@ -70,16 +70,16 @@ int k_5[5][5] = {
     {0, 0, 0, 0, 0}
 };
 
-int** createKernel(int size){
-    if (size == 3){
-        return k_3;
-    } else if (size == 5){
-        return k_5;
-    } else {
-        fprintf(stderr, "Wrong kernel size");
-        return NULL;
-    }
-}
+//int** createKernel(int size){
+//    if (size == 3){
+//        return k_3;
+//    } else if (size == 5){
+//        return k_5;
+//    } else {
+//        fprintf(stderr, "Wrong kernel size");
+//        return NULL;
+//    }
+//}
 
 // 生成大小为32x32的 个数为amount的 随机二值图像
 static uint* genRand32x32Imgs(uint seed, uint amount) {
@@ -124,45 +124,46 @@ static void disposeImgs(uint **pImgs) {
 
 // test
 int main() {
-    uint amount = 1;
+    uint amount = 1000;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
 
     int size = 3;
-    int** k_ = createKernel(size);
+//    int** k_ = createKernel(size);
     
-    if (k_ == NULL) { return 0; }
-//	printf("%d", 32u - size + 1);
-    // IMG32PIXEL(pImgs, a, u, v)
-    // pImgs[a][u, v]
+//    if (k_ == NULL) { return 0; }
+
     
+    clock_t tic = clock();
     for (uint a = 0u; a < amount; ++a) {
 //         printf("+================================+\n|");
         for (uint v = 0u; v < 32u - size + 1; ++v) {
             // uint num = *(pImgs + a * 32u + v);
             for (uint u = 0u; u < 32u - size + 1; ++u) {
                 // printf("%u", (num & (1u << u)) >> u);
-                // printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
+//                printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
                 
                 int count = 0;
                 // each node in kernel
                 for (int h = 0; h < size; h++) {
                     for (int w = 0; w < size; w++) {
                         // account the output value
-                        printf("%d",k_[h][w]);
-                        count += IMG32PIXEL(pImgs, a, u, v) * k_[h][w];
+//                        printf("%d",k_);
+                        count += IMG32PIXEL(pImgs, a, u + h, v + w) * k_3[h][w];
                         
                     }
                 }
                 // now, count is the output node of the kernel
-                
-                printf("%d\n",count);
+            	
+//                printf("%d  ",count);
             }
-            // if (v == 31u)printf("|\n");
-            // else printf("|\n|");
+//             if (v == 31u)printf("|\n");
+//             else printf("|\n|");
         }
         // printf("+================================+\n");
     }
+    clock_t toc = clock();
+    printf("Kernel compute time: %f seconds\n", (double)(toc - tic) / CLOCKS_PER_SEC);
     
     disposeImgs(&pImgs);
     return 0;
