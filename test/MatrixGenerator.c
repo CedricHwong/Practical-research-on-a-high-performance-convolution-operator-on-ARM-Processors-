@@ -84,22 +84,35 @@ static void disposeImgs(uint **pImgs) {
 
 // test
 int main() {
-    uint amount = 130000000;
+    uint amount = 1;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
-    // for (uint a = 0u; a < amount; ++a) {
-    //     printf("+================================+\n|");
-    //     for (uint v = 0u; v < 32u; ++v) {
-    //         // uint num = *(pImgs + a * 32u + v);
-    //         for (uint u = 0u; u < 32u; ++u) {
-    //             // printf("%u", (num & (1u << u)) >> u);
-    //             printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
-    //         }
-    //         if (v == 31u)printf("|\n");
-    //         else printf("|\n|");
-    //     }
-    //     printf("+================================+\n");
-    // }
+    for (uint a = 0u; a < amount; ++a) {
+        // printf("+================================+\n|");
+        for (uint v = 0u; v < 32u; ++v) {
+            // uint num = *(pImgs + a * 32u + v);
+            for (uint u = 0u; u < 32u; ++u) {
+                // printf("%u", (num & (1u << u)) >> u);
+                printf("%c", IMG32PIXEL(pImgs, a, u, v)? '0': '1');
+            }
+            if (v == 31u)printf("|\n");
+            else printf("\n");
+        }
+
+        //for loop:
+        //  a = 1
+        //  pImgs
+        //  IMG32PIXEL(a, u, v)
+        /*
+            for:
+                for:
+                    for m:
+                        for n:
+                            if:
+                                pimgs[a][m][n]
+        */
+        // printf("+================================+\n");
+    }
     disposeImgs(&pImgs);
     return 0;
 }
