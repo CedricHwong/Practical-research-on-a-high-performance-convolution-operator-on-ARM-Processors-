@@ -35,11 +35,28 @@ static inline uint xorshift(uint seed) {
 // 图片数组的指针，第几张图片，水平第几列[0, 32)，垂直第几行[0, 32)
 #define IMG32PIXEL(pImgs, imgIndex, u, v) GET_BIT_32(IMG32ROW(pImgs, imgIndex, v), u)
 
-/*
-科普：图片uv坐标系
-水平轴是u，向右为正方向；垂直轴是v，向下为正方向；原点在图片左上角
-*/
+// IMG32PIXEL(pImgs, a, u, v)
+// pImgs[a][u, v]
 
+// 锐化的卷积核3*3
+/*
+  0  1  0
+  1 -4  1
+  0  1  0
+*/
+/*
+  0 -1  0
+ -1  5 -1
+  0 -1  0
+*/
+// 5*5
+/*
+  0  0  0  0  0
+  0  0 -1  0  0
+  0 -1  5 -1  0
+  0  0 -1  0  0
+  0  0  0  0  0
+*/
 
 // 生成大小为32x32的 个数为amount的 随机二值图像
 static uint* genRand32x32Imgs(uint seed, uint amount) {
@@ -84,35 +101,22 @@ static void disposeImgs(uint **pImgs) {
 
 // test
 int main() {
-    uint amount = 1;
+    uint amount = 130000000;
     uint *pImgs = genRand32x32Imgs(23, amount);
     if (pImgs == NULL) return 0;
-    for (uint a = 0u; a < amount; ++a) {
-        // printf("+================================+\n|");
-        for (uint v = 0u; v < 32u; ++v) {
-            // uint num = *(pImgs + a * 32u + v);
-            for (uint u = 0u; u < 32u; ++u) {
-                // printf("%u", (num & (1u << u)) >> u);
-                printf("%c", IMG32PIXEL(pImgs, a, u, v)? '0': '1');
-            }
-            if (v == 31u)printf("|\n");
-            else printf("\n");
-        }
-
-        //for loop:
-        //  a = 1
-        //  pImgs
-        //  IMG32PIXEL(a, u, v)
-        /*
-            for:
-                for:
-                    for m:
-                        for n:
-                            if:
-                                pimgs[a][m][n]
-        */
-        // printf("+================================+\n");
-    }
+    // for (uint a = 0u; a < amount; ++a) {
+    //     printf("+================================+\n|");
+    //     for (uint v = 0u; v < 32u; ++v) {
+    //         // uint num = *(pImgs + a * 32u + v);
+    //         for (uint u = 0u; u < 32u; ++u) {
+    //             // printf("%u", (num & (1u << u)) >> u);
+    //             printf("%c", IMG32PIXEL(pImgs, a, u, v)? 'H': ' ');
+    //         }
+    //         if (v == 31u)printf("|\n");
+    //         else printf("|\n|");
+    //     }
+    //     printf("+================================+\n");
+    // }
     disposeImgs(&pImgs);
     return 0;
 }
